@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hoops Word — Guess the NBA Player</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: linear-gradient(145deg, #0a0a1a 0%, #1a1025 40%, #0d1929 100%);
+    font-family: 'Outfit', sans-serif;
+    color: #fff;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 20px 16px;
+    overflow-x: hidden;
+  }
+  .court-circle {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    border-radius: 50%; pointer-events: none;
+  }
+  .court-circle.sm { width: 300px; height: 300px; border: 1px solid rgba(249,115,22,0.06); }
+  .court-circle.lg { width: 500px; height: 500px; border: 1px solid rgba(249,115,22,0.04); }
+  .title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 4px;
+    background: linear-gradient(135deg, #f97316 0%, #fbbf24 50%, #f97316 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    line-height: 1;
+  }
+  .subtitle {
+    font-size: 12px; letter-spacing: 6px; color: rgba(255,255,255,0.4);
+    font-weight: 300; margin-top: 4px; text-transform: uppercase;
+  }
+  .score-bar {
+    display: flex; gap: 24px; margin: 12px 0 20px;
+    padding: 8px 24px; border-radius: 40px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .score-item { text-align: center; }
+  .score-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+    color: rgba(255,255,255,0.4);
+  }
+  .score-value { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: #f59e0b; }
+  .score-divider { width: 1px; background: rgba(255,255,255,0.08); }
+  .miss-dots { display: flex; gap: 6px; margin-bottom: 24px; }
+  .miss-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    transition: all 0.3s ease;
+  }
+  .miss-dot.empty { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); }
+  .miss-dot.filled {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: 1px solid #ef4444;
+    box-shadow: 0 0 8px rgba(239,68,68,0.4);
+  }
+  .name-row {
+    display: flex; flex-wrap: nowrap; justify-content: center;
+    gap: 0; margin-bottom: 28px; padding: 16px 20px;
+    background: rgba(255,255,255,0.02); border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.05);
+    min-height: 84px; align-items: center;
+    width: fit-content; max-width: 100%;
+  }
+  .letter-tile {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 1px; transition: all 0.3s ease;
+    margin: 0 1px;
+  }
+  .hint-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.5); padding: 6px 16px; border-radius: 20px;
+    cursor: pointer; font-size: 12px; letter-spacing: 1px;
+    font-family: 'Outfit', sans-serif; transition: all 0.2s;
+  }
+  .hint-btn:hover { border-color: rgba(249,115,22,0.4); color: #f97316; }
+  .hint-text {
+    font-size: 13px; color: rgba(255,255,255,0.5); font-style: italic;
+    padding: 6px 16px; background: rgba(249,115,22,0.06);
+    border-radius: 12px; border: 1px solid rgba(249,115,22,0.15);
+  }
+  .guess-row {
+    display: flex; gap: 8px; margin-bottom: 24px; width: 100%; max-width: 380px;
+  }
+  .guess-input {
+    flex: 1; padding: 10px 16px; border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff; font-size: 14px; font-family: 'Outfit', sans-serif;
+    outline: none; transition: all 0.3s;
+  }
+  .guess-input::placeholder { color: rgba(255,255,255,0.25); }
+  .guess-input:focus { border-color: rgba(249,115,22,0.5); }
+  .guess-input.wrong { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.4); }
+  .guess-btn {
+    padding: 10px 20px; border-radius: 12px;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    border: none; color: #fff; font-weight: 600;
+    cursor: pointer; font-size: 14px; font-family: 'Outfit', sans-serif;
+    transition: transform 0.15s;
+  }
+  .guess-btn:active { transform: scale(0.95); }
+  .keyboard {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: 5px; max-width: 420px; margin-bottom: 24px;
+  }
+  .key {
+    width: 40px; height: 44px; border-radius: 8px;
+    font-size: 16px; font-weight: 600;
+    font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.2s ease;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.8);
+  }
+  .key:hover:not(.used) { background: rgba(249,115,22,0.15); border-color: rgba(249,115,22,0.4); transform: scale(1.1); }
+  .key.correct {
+    border-color: rgba(249,159,11,0.6);
+    background: linear-gradient(135deg, rgba(249,159,11,0.25), rgba(249,115,22,0.15));
+    color: #fbbf24; transform: scale(1.05);
+    box-shadow: 0 0 12px rgba(249,159,11,0.2);
+  }
+  .key.wrong {
+    border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08);
+    color: rgba(239,68,68,0.4); opacity: 0.4; cursor: default;
+  }
+  .key.used { cursor: default; }
+  .result-card {
+    text-align: center; padding: 24px 32px; border-radius: 20px;
+    max-width: 380px; width: 100%;
+    animation: fadeUp 0.4s ease;
+  }
+  .result-card.won {
+    background: linear-gradient(135deg, rgba(249,115,22,0.12), rgba(251,191,36,0.08));
+    border: 1px solid rgba(249,115,22,0.3);
+  }
+  .result-card.lost {
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.2);
+  }
+  .result-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; margin-bottom: 4px; }
+  .result-sub { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
+  .result-answer { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #fff; letter-spacing: 2px; margin-bottom: 8px; }
+  .next-btn {
+    margin-top: 12px; padding: 12px 32px; border-radius: 14px;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    border: none; color: #fff; font-size: 16px; font-weight: 600;
+    cursor: pointer; font-family: 'Outfit', sans-serif;
+    letter-spacing: 1px; transition: transform 0.15s;
+    box-shadow: 0 4px 20px rgba(249,115,22,0.3);
+  }
+  .next-btn:active { transform: scale(0.95); }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .shake { animation: shake 0.4s ease; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="court-circle sm"></div>
+<div class="court-circle lg"></div>
+
+<div style="text-align:center; margin-bottom:12px;">
+  <div class="title">HOOPS WORD</div>
+  <div class="subtitle">Guess the NBA Player</div>
+</div>
+
+<div class="score-bar">
+  <div class="score-item">
+    <div class="score-label">Score</div>
+    <div class="score-value" id="score">0</div>
+  </div>
+  <div class="score-divider"></div>
+  <div class="score-item">
+    <div class="score-label">Streak</div>
+    <div class="score-value" id="streak" style="color:#f97316">0🔥</div>
+  </div>
+  <div class="score-divider"></div>
+  <div class="score-item">
+    <div class="score-label">Misses</div>
+    <div class="score-value" id="misses-text">0/8</div>
+  </div>
+</div>
+
+<div class="miss-dots" id="miss-dots"></div>
+<div class="name-row" id="name-row"></div>
+
+<div id="hint-area" style="margin-bottom:16px; text-align:center;"></div>
+
+<div class="guess-row" id="guess-row">
+  <input class="guess-input" id="guess-input" type="text" placeholder="Know it? Type the full name..." autocomplete="off" />
+  <button class="guess-btn" id="guess-btn">Guess</button>
+</div>
+
+<div class="keyboard" id="keyboard"></div>
+
+<div id="result-area"></div>
+
+<script>
+const PLAYERS = [
+  {name:"Michael Jordan",team:"Chicago Bulls",pos:"Shooting Guard",year:1984},
+  {name:"LeBron James",team:"Cleveland Cavaliers",pos:"Small Forward",year:2003},
+  {name:"Kareem Abdul-Jabbar",team:"Milwaukee Bucks",pos:"Center",year:1969},
+  {name:"Magic Johnson",team:"Los Angeles Lakers",pos:"Point Guard",year:1979},
+  {name:"Larry Bird",team:"Boston Celtics",pos:"Small Forward",year:1979},
+  {name:"Wilt Chamberlain",team:"Philadelphia Warriors",pos:"Center",year:1959},
+  {name:"Bill Russell",team:"Boston Celtics",pos:"Center",year:1956},
+  {name:"Tim Duncan",team:"San Antonio Spurs",pos:"Power Forward",year:1997},
+  {name:"Kobe Bryant",team:"Los Angeles Lakers",pos:"Shooting Guard",year:1996},
+  {name:"Shaquille O'Neal",team:"Orlando Magic",pos:"Center",year:1992},
+  {name:"Hakeem Olajuwon",team:"Houston Rockets",pos:"Center",year:1984},
+  {name:"Oscar Robertson",team:"Cincinnati Royals",pos:"Point Guard",year:1960},
+  {name:"Jerry West",team:"Los Angeles Lakers",pos:"Shooting Guard",year:1960},
+  {name:"Moses Malone",team:"Houston Rockets",pos:"Center",year:1974},
+  {name:"Karl Malone",team:"Utah Jazz",pos:"Power Forward",year:1985},
+  {name:"Charles Barkley",team:"Philadelphia 76ers",pos:"Power Forward",year:1984},
+  {name:"Julius Erving",team:"Philadelphia 76ers",pos:"Small Forward",year:1976},
+  {name:"John Stockton",team:"Utah Jazz",pos:"Point Guard",year:1984},
+  {name:"David Robinson",team:"San Antonio Spurs",pos:"Center",year:1989},
+  {name:"Isiah Thomas",team:"Detroit Pistons",pos:"Point Guard",year:1981},
+  {name:"Patrick Ewing",team:"New York Knicks",pos:"Center",year:1985},
+  {name:"Scottie Pippen",team:"Chicago Bulls",pos:"Small Forward",year:1987},
+  {name:"Kevin Garnett",team:"Minnesota Timberwolves",pos:"Power Forward",year:1995},
+  {name:"Dirk Nowitzki",team:"Dallas Mavericks",pos:"Power Forward",year:1998},
+  {name:"Dwyane Wade",team:"Miami Heat",pos:"Shooting Guard",year:2003},
+  {name:"Steve Nash",team:"Phoenix Suns",pos:"Point Guard",year:1996},
+  {name:"Allen Iverson",team:"Philadelphia 76ers",pos:"Shooting Guard",year:1996},
+  {name:"Jason Kidd",team:"Dallas Mavericks",pos:"Point Guard",year:1994},
+  {name:"Gary Payton",team:"Seattle SuperSonics",pos:"Point Guard",year:1990},
+  {name:"Clyde Drexler",team:"Portland Trail Blazers",pos:"Shooting Guard",year:1983},
+  {name:"Elgin Baylor",team:"Minneapolis Lakers",pos:"Small Forward",year:1958},
+  {name:"Bob Cousy",team:"Boston Celtics",pos:"Point Guard",year:1950},
+  {name:"John Havlicek",team:"Boston Celtics",pos:"Small Forward",year:1962},
+  {name:"George Mikan",team:"Minneapolis Lakers",pos:"Center",year:1948},
+  {name:"Bob Pettit",team:"Milwaukee Hawks",pos:"Power Forward",year:1954},
+  {name:"Walt Frazier",team:"New York Knicks",pos:"Point Guard",year:1967},
+  {name:"Willis Reed",team:"New York Knicks",pos:"Center",year:1964},
+  {name:"Dave Cowens",team:"Boston Celtics",pos:"Center",year:1970},
+  {name:"Rick Barry",team:"San Francisco Warriors",pos:"Small Forward",year:1965},
+  {name:"Nate Archibald",team:"Cincinnati Royals",pos:"Point Guard",year:1970},
+  {name:"Pete Maravich",team:"Atlanta Hawks",pos:"Shooting Guard",year:1970},
+  {name:"Earl Monroe",team:"Baltimore Bullets",pos:"Shooting Guard",year:1967},
+  {name:"Wes Unseld",team:"Baltimore Bullets",pos:"Center",year:1968},
+  {name:"Elvin Hayes",team:"San Diego Rockets",pos:"Power Forward",year:1968},
+  {name:"Bob McAdoo",team:"Buffalo Braves",pos:"Center",year:1972},
+  {name:"George Gervin",team:"San Antonio Spurs",pos:"Shooting Guard",year:1976},
+  {name:"Adrian Dantley",team:"Buffalo Braves",pos:"Small Forward",year:1976},
+  {name:"Alex English",team:"Milwaukee Bucks",pos:"Small Forward",year:1976},
+  {name:"Bernard King",team:"New Jersey Nets",pos:"Small Forward",year:1977},
+  {name:"Dominique Wilkins",team:"Atlanta Hawks",pos:"Small Forward",year:1982},
+  {name:"James Worthy",team:"Los Angeles Lakers",pos:"Small Forward",year:1982},
+  {name:"Robert Parish",team:"Golden State Warriors",pos:"Center",year:1976},
+  {name:"Kevin McHale",team:"Boston Celtics",pos:"Power Forward",year:1980},
+  {name:"Dennis Rodman",team:"Detroit Pistons",pos:"Power Forward",year:1986},
+  {name:"Reggie Miller",team:"Indiana Pacers",pos:"Shooting Guard",year:1987},
+  {name:"Ray Allen",team:"Milwaukee Bucks",pos:"Shooting Guard",year:1996},
+  {name:"Paul Pierce",team:"Boston Celtics",pos:"Small Forward",year:1998},
+  {name:"Vince Carter",team:"Toronto Raptors",pos:"Shooting Guard",year:1998},
+  {name:"Tracy McGrady",team:"Toronto Raptors",pos:"Shooting Guard",year:1997},
+  {name:"Chris Webber",team:"Golden State Warriors",pos:"Power Forward",year:1993},
+  {name:"Alonzo Mourning",team:"Charlotte Hornets",pos:"Center",year:1992},
+  {name:"Dikembe Mutombo",team:"Denver Nuggets",pos:"Center",year:1991},
+  {name:"Grant Hill",team:"Detroit Pistons",pos:"Small Forward",year:1994},
+  {name:"Penny Hardaway",team:"Orlando Magic",pos:"Point Guard",year:1993},
+  {name:"Chris Paul",team:"New Orleans Hornets",pos:"Point Guard",year:2005},
+  {name:"Dwight Howard",team:"Orlando Magic",pos:"Center",year:2004},
+  {name:"Pau Gasol",team:"Memphis Grizzlies",pos:"Power Forward",year:2001},
+  {name:"Tony Parker",team:"San Antonio Spurs",pos:"Point Guard",year:2001},
+  {name:"Manu Ginobili",team:"San Antonio Spurs",pos:"Shooting Guard",year:2002},
+  {name:"Carmelo Anthony",team:"Denver Nuggets",pos:"Small Forward",year:2003},
+  {name:"Amare Stoudemire",team:"Phoenix Suns",pos:"Power Forward",year:2002},
+  {name:"Paul George",team:"Indiana Pacers",pos:"Small Forward",year:2010},
+  {name:"Russell Westbrook",team:"Oklahoma City Thunder",pos:"Point Guard",year:2008},
+  {name:"James Harden",team:"Oklahoma City Thunder",pos:"Shooting Guard",year:2009},
+  {name:"Kevin Durant",team:"Seattle SuperSonics",pos:"Small Forward",year:2007},
+  {name:"Stephen Curry",team:"Golden State Warriors",pos:"Point Guard",year:2009},
+  {name:"Kawhi Leonard",team:"San Antonio Spurs",pos:"Small Forward",year:2011},
+  {name:"Kyrie Irving",team:"Cleveland Cavaliers",pos:"Point Guard",year:2011},
+  {name:"Damian Lillard",team:"Portland Trail Blazers",pos:"Point Guard",year:2012},
+  {name:"Giannis Antetokounmpo",team:"Milwaukee Bucks",pos:"Power Forward",year:2013},
+  {name:"Nikola Jokic",team:"Denver Nuggets",pos:"Center",year:2015},
+  {name:"Joel Embiid",team:"Philadelphia 76ers",pos:"Center",year:2014},
+  {name:"Luka Doncic",team:"Dallas Mavericks",pos:"Point Guard",year:2018},
+  {name:"Anthony Davis",team:"New Orleans Pelicans",pos:"Power Forward",year:2012},
+  {name:"Jimmy Butler",team:"Chicago Bulls",pos:"Small Forward",year:2011},
+  {name:"Jayson Tatum",team:"Boston Celtics",pos:"Small Forward",year:2017},
+  {name:"Jaylen Brown",team:"Boston Celtics",pos:"Shooting Guard",year:2016},
+  {name:"Donovan Mitchell",team:"Utah Jazz",pos:"Shooting Guard",year:2017},
+  {name:"Devin Booker",team:"Phoenix Suns",pos:"Shooting Guard",year:2015},
+  {name:"Trae Young",team:"Atlanta Hawks",pos:"Point Guard",year:2018},
+  {name:"Zion Williamson",team:"New Orleans Pelicans",pos:"Power Forward",year:2019},
+  {name:"Ja Morant",team:"Memphis Grizzlies",pos:"Point Guard",year:2019},
+  {name:"Shai Gilgeous-Alexander",team:"Oklahoma City Thunder",pos:"Shooting Guard",year:2018},
+  {name:"Anthony Edwards",team:"Minnesota Timberwolves",pos:"Shooting Guard",year:2020},
+  {name:"Tyrese Haliburton",team:"Sacramento Kings",pos:"Point Guard",year:2020},
+  {name:"De'Aaron Fox",team:"Sacramento Kings",pos:"Point Guard",year:2017},
+  {name:"Bam Adebayo",team:"Miami Heat",pos:"Center",year:2017},
+  {name:"Domantas Sabonis",team:"Oklahoma City Thunder",pos:"Power Forward",year:2016},
+  {name:"Tyrese Maxey",team:"Philadelphia 76ers",pos:"Shooting Guard",year:2020},
+  {name:"Jalen Brunson",team:"Dallas Mavericks",pos:"Point Guard",year:2018},
+  {name:"Paolo Banchero",team:"Orlando Magic",pos:"Power Forward",year:2022},
+  {name:"Chet Holmgren",team:"Oklahoma City Thunder",pos:"Center",year:2022},
+  {name:"Victor Wembanyama",team:"San Antonio Spurs",pos:"Center",year:2023},
+  {name:"Derrick White",team:"San Antonio Spurs",pos:"Point Guard",year:2017},
+  {name:"Karl-Anthony Towns",team:"Minnesota Timberwolves",pos:"Center",year:2015},
+  {name:"Julius Randle",team:"Los Angeles Lakers",pos:"Power Forward",year:2014},
+  {name:"Lauri Markkanen",team:"Chicago Bulls",pos:"Power Forward",year:2017},
+  {name:"Jaren Jackson Jr",team:"Memphis Grizzlies",pos:"Power Forward",year:2018},
+  {name:"Scottie Barnes",team:"Toronto Raptors",pos:"Power Forward",year:2021},
+  {name:"Pascal Siakam",team:"Toronto Raptors",pos:"Power Forward",year:2016},
+  {name:"Fred VanVleet",team:"Toronto Raptors",pos:"Point Guard",year:2016},
+  {name:"Klay Thompson",team:"Golden State Warriors",pos:"Shooting Guard",year:2011},
+  {name:"Draymond Green",team:"Golden State Warriors",pos:"Power Forward",year:2012},
+  {name:"Rudy Gobert",team:"Utah Jazz",pos:"Center",year:2013},
+  {name:"Alperen Sengun",team:"Houston Rockets",pos:"Center",year:2021},
+  {name:"Cade Cunningham",team:"Detroit Pistons",pos:"Point Guard",year:2021},
+  {name:"Evan Mobley",team:"Cleveland Cavaliers",pos:"Power Forward",year:2021},
+  {name:"Mikal Bridges",team:"Phoenix Suns",pos:"Small Forward",year:2018},
+  {name:"Brandon Ingram",team:"Los Angeles Lakers",pos:"Small Forward",year:2016},
+  {name:"Tyler Herro",team:"Miami Heat",pos:"Shooting Guard",year:2019},
+  {name:"Anfernee Simons",team:"Portland Trail Blazers",pos:"Shooting Guard",year:2018},
+  {name:"Jalen Williams",team:"Oklahoma City Thunder",pos:"Shooting Guard",year:2022},
+  {name:"Franz Wagner",team:"Orlando Magic",pos:"Small Forward",year:2021},
+  {name:"Myles Turner",team:"Indiana Pacers",pos:"Center",year:2015},
+  {name:"Kristaps Porzingis",team:"New York Knicks",pos:"Power Forward",year:2015},
+  {name:"Deandre Ayton",team:"Phoenix Suns",pos:"Center",year:2018},
+  {name:"Coby White",team:"Chicago Bulls",pos:"Point Guard",year:2019},
+  {name:"Jalen Johnson",team:"Atlanta Hawks",pos:"Small Forward",year:2021},
+  {name:"Yao Ming",team:"Houston Rockets",pos:"Center",year:2002},
+  {name:"Ben Wallace",team:"Washington Bullets",pos:"Center",year:1996},
+  {name:"Chauncey Billups",team:"Boston Celtics",pos:"Point Guard",year:1997},
+  {name:"Rip Hamilton",team:"Washington Wizards",pos:"Shooting Guard",year:1999},
+  {name:"Ben Simmons",team:"Philadelphia 76ers",pos:"Point Guard",year:2016},
+  {name:"Derrick Rose",team:"Chicago Bulls",pos:"Point Guard",year:2008},
+  {name:"Rajon Rondo",team:"Boston Celtics",pos:"Point Guard",year:2006},
+  {name:"Joakim Noah",team:"Chicago Bulls",pos:"Center",year:2007},
+  {name:"LaMarcus Aldridge",team:"Portland Trail Blazers",pos:"Power Forward",year:2006},
+  {name:"DeMar DeRozan",team:"Toronto Raptors",pos:"Shooting Guard",year:2009},
+  {name:"Kyle Lowry",team:"Memphis Grizzlies",pos:"Point Guard",year:2006},
+  {name:"Marc Gasol",team:"Memphis Grizzlies",pos:"Center",year:2008},
+  {name:"Al Horford",team:"Atlanta Hawks",pos:"Center",year:2007},
+  {name:"Andre Iguodala",team:"Philadelphia 76ers",pos:"Small Forward",year:2004},
+  {name:"Kemba Walker",team:"Charlotte Bobcats",pos:"Point Guard",year:2011},
+  {name:"Mike Conley",team:"Memphis Grizzlies",pos:"Point Guard",year:2007},
+  {name:"CJ McCollum",team:"Portland Trail Blazers",pos:"Shooting Guard",year:2013},
+  {name:"Khris Middleton",team:"Detroit Pistons",pos:"Small Forward",year:2012},
+  {name:"Jrue Holiday",team:"Philadelphia 76ers",pos:"Shooting Guard",year:2009},
+  {name:"Brook Lopez",team:"New Jersey Nets",pos:"Center",year:2008},
+  {name:"Andrew Wiggins",team:"Minnesota Timberwolves",pos:"Small Forward",year:2014},
+  {name:"Zach LaVine",team:"Minnesota Timberwolves",pos:"Shooting Guard",year:2014},
+  {name:"Nikola Vucevic",team:"Philadelphia 76ers",pos:"Center",year:2011},
+  {name:"Jarrett Allen",team:"Brooklyn Nets",pos:"Center",year:2017},
+  {name:"Dejounte Murray",team:"San Antonio Spurs",pos:"Point Guard",year:2016},
+  {name:"Walt Bellamy",team:"Chicago Packers",pos:"Center",year:1961},
+  {name:"Dave Bing",team:"Detroit Pistons",pos:"Point Guard",year:1966},
+  {name:"Lenny Wilkens",team:"St. Louis Hawks",pos:"Point Guard",year:1960},
+  {name:"Sam Jones",team:"Boston Celtics",pos:"Shooting Guard",year:1957},
+  {name:"KC Jones",team:"Boston Celtics",pos:"Point Guard",year:1958},
+  {name:"Bailey Howell",team:"Detroit Pistons",pos:"Small Forward",year:1959},
+  {name:"Hal Greer",team:"Syracuse Nationals",pos:"Shooting Guard",year:1958},
+  {name:"Chet Walker",team:"Syracuse Nationals",pos:"Small Forward",year:1962},
+  {name:"Billy Cunningham",team:"Philadelphia 76ers",pos:"Small Forward",year:1965},
+  {name:"Dave DeBusschere",team:"Detroit Pistons",pos:"Power Forward",year:1962},
+  {name:"Jerry Lucas",team:"Cincinnati Royals",pos:"Power Forward",year:1963},
+  {name:"Gail Goodrich",team:"Los Angeles Lakers",pos:"Shooting Guard",year:1965},
+  {name:"Spencer Haywood",team:"Seattle SuperSonics",pos:"Power Forward",year:1970},
+  {name:"Bob Lanier",team:"Detroit Pistons",pos:"Center",year:1970},
+  {name:"Dan Issel",team:"Kentucky Colonels",pos:"Center",year:1970},
+  {name:"Artis Gilmore",team:"Kentucky Colonels",pos:"Center",year:1971},
+  {name:"Maurice Lucas",team:"Portland Trail Blazers",pos:"Power Forward",year:1976},
+  {name:"Jack Sikma",team:"Seattle SuperSonics",pos:"Center",year:1977},
+  {name:"Marques Johnson",team:"Milwaukee Bucks",pos:"Small Forward",year:1977},
+  {name:"Sidney Moncrief",team:"Milwaukee Bucks",pos:"Shooting Guard",year:1979},
+  {name:"Mark Aguirre",team:"Dallas Mavericks",pos:"Small Forward",year:1981},
+  {name:"Fat Lever",team:"Portland Trail Blazers",pos:"Point Guard",year:1982},
+  {name:"Tom Chambers",team:"San Diego Clippers",pos:"Power Forward",year:1981},
+  {name:"Terry Cummings",team:"San Diego Clippers",pos:"Small Forward",year:1982},
+  {name:"Dale Ellis",team:"Dallas Mavericks",pos:"Small Forward",year:1983},
+  {name:"Chris Mullin",team:"Golden State Warriors",pos:"Small Forward",year:1985},
+  {name:"Mark Price",team:"Cleveland Cavaliers",pos:"Point Guard",year:1986},
+  {name:"Joe Dumars",team:"Detroit Pistons",pos:"Shooting Guard",year:1985},
+  {name:"Dennis Johnson",team:"Seattle SuperSonics",pos:"Shooting Guard",year:1976},
+  {name:"Alvin Robertson",team:"San Antonio Spurs",pos:"Shooting Guard",year:1984},
+  {name:"Kevin Johnson",team:"Cleveland Cavaliers",pos:"Point Guard",year:1987},
+  {name:"Tim Hardaway",team:"Golden State Warriors",pos:"Point Guard",year:1989},
+  {name:"Mitch Richmond",team:"Golden State Warriors",pos:"Shooting Guard",year:1988},
+  {name:"Shawn Kemp",team:"Seattle SuperSonics",pos:"Power Forward",year:1989},
+  {name:"Detlef Schrempf",team:"Dallas Mavericks",pos:"Small Forward",year:1985},
+  {name:"Latrell Sprewell",team:"Golden State Warriors",pos:"Small Forward",year:1992},
+  {name:"Glen Rice",team:"Miami Heat",pos:"Small Forward",year:1989},
+  {name:"Horace Grant",team:"Chicago Bulls",pos:"Power Forward",year:1987},
+  {name:"Derrick Coleman",team:"New Jersey Nets",pos:"Power Forward",year:1990},
+  {name:"Larry Johnson",team:"Charlotte Hornets",pos:"Power Forward",year:1991},
+  {name:"Jamal Mashburn",team:"Dallas Mavericks",pos:"Small Forward",year:1993},
+  {name:"Shareef Abdur-Rahim",team:"Vancouver Grizzlies",pos:"Small Forward",year:1996},
+  {name:"Stephon Marbury",team:"Minnesota Timberwolves",pos:"Point Guard",year:1996},
+  {name:"Michael Finley",team:"Phoenix Suns",pos:"Shooting Guard",year:1995},
+  {name:"Jermaine O'Neal",team:"Portland Trail Blazers",pos:"Power Forward",year:1996},
+  {name:"Rasheed Wallace",team:"Washington Bullets",pos:"Power Forward",year:1995},
+  {name:"Shawn Marion",team:"Phoenix Suns",pos:"Small Forward",year:1999},
+  {name:"Peja Stojakovic",team:"Sacramento Kings",pos:"Small Forward",year:1998},
+  {name:"Caron Butler",team:"Miami Heat",pos:"Small Forward",year:2002},
+  {name:"Antawn Jamison",team:"Toronto Raptors",pos:"Small Forward",year:1998},
+  {name:"Elton Brand",team:"Chicago Bulls",pos:"Power Forward",year:1999},
+  {name:"Baron Davis",team:"Charlotte Hornets",pos:"Point Guard",year:1999},
+  {name:"Gilbert Arenas",team:"Golden State Warriors",pos:"Shooting Guard",year:2001},
+  {name:"Rashard Lewis",team:"Seattle SuperSonics",pos:"Small Forward",year:1998},
+  {name:"Brad Daugherty",team:"Cleveland Cavaliers",pos:"Center",year:1986},
+  {name:"Terry Porter",team:"Portland Trail Blazers",pos:"Point Guard",year:1985},
+  {name:"Sam Perkins",team:"Dallas Mavericks",pos:"Power Forward",year:1984},
+  {name:"Cliff Robinson",team:"Portland Trail Blazers",pos:"Small Forward",year:1989},
+  {name:"Hersey Hawkins",team:"Philadelphia 76ers",pos:"Shooting Guard",year:1988},
+  {name:"Dan Majerle",team:"Phoenix Suns",pos:"Shooting Guard",year:1988},
+];
+
+const MAX_WRONG = 8;
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+let currentPlayerObj = null;
+let currentPlayer = "";
+let guessedLetters = new Set();
+let wrongGuesses = 0;
+let gameState = "playing";
+let score = 0;
+let streak = 0;
+let hintStage = 0; // 0=no hint, 1=team, 2=team+position, 3=team+position+year
+
+function pickPlayer() {
+  let p;
+  do { p = PLAYERS[Math.floor(Math.random() * PLAYERS.length)]; } while (p === currentPlayerObj);
+  return p;
+}
+
+function getUniqueLetters(name) {
+  return new Set(name.toUpperCase().replace(/[^A-Z]/g, "").split(""));
+}
+
+function renderDots() {
+  const el = document.getElementById("miss-dots");
+  el.innerHTML = "";
+  for (let i = 0; i < MAX_WRONG; i++) {
+    const dot = document.createElement("div");
+    dot.className = "miss-dot " + (i < wrongGuesses ? "filled" : "empty");
+    el.appendChild(dot);
+  }
+}
+
+function renderName() {
+  const row = document.getElementById("name-row");
+  row.innerHTML = "";
+  const chars = currentPlayer.split("");
+  const charCount = chars.length;
+  const maxWidth = 460;
+  const marginPerChar = 4;
+  const baseSize = 36;
+  const tileSize = Math.min(baseSize, Math.floor((maxWidth - charCount * marginPerChar) / charCount));
+  const fontSize = Math.round(tileSize * 0.75);
+  const tileHeight = Math.round(tileSize * 1.4);
+  const spaceWidth = Math.max(10, Math.round(tileSize * 0.55));
+
+  chars.forEach((char, i) => {
+    const span = document.createElement("span");
+    span.className = "letter-tile";
+    const isSpace = char === " ";
+    const isSpecial = /[^A-Za-z]/.test(char) && !isSpace;
+    const isRevealed = guessedLetters.has(char.toUpperCase()) || gameState !== "playing";
+
+    if (isSpace) {
+      span.style.cssText = `width:${spaceWidth}px; display:inline-block;`;
+    } else if (isSpecial) {
+      span.style.cssText = `width:${tileSize}px; height:${tileHeight}px; font-size:${fontSize}px; color:#f59e0b;`;
+      span.textContent = char;
+    } else {
+      const borderColor = isRevealed ? (gameState === "lost" ? "#ef4444" : "#f59e0b") : "rgba(255,255,255,0.3)";
+      let textColor = "transparent";
+      if (isRevealed) {
+        textColor = (gameState === "lost" && !guessedLetters.has(char.toUpperCase())) ? "#ef4444" : "#fff";
+      }
+      span.style.cssText = `width:${tileSize}px; height:${tileHeight}px; font-size:${fontSize}px; border-bottom:3px solid ${borderColor}; color:${textColor};`;
+      span.textContent = isRevealed ? char.toUpperCase() : "_";
+    }
+    row.appendChild(span);
+  });
+}
+
+function renderKeyboard() {
+  const kb = document.getElementById("keyboard");
+  kb.innerHTML = "";
+  ALPHABET.forEach(letter => {
+    const btn = document.createElement("button");
+    btn.textContent = letter;
+    const isGuessed = guessedLetters.has(letter);
+    const isInName = currentPlayer.toUpperCase().includes(letter);
+    let cls = "key";
+    if (isGuessed && isInName) cls += " correct used";
+    else if (isGuessed && !isInName) cls += " wrong used";
+    btn.className = cls;
+    btn.disabled = isGuessed || gameState !== "playing";
+    btn.addEventListener("click", () => handleLetter(letter));
+    kb.appendChild(btn);
+  });
+}
+
+function renderScores() {
+  document.getElementById("score").textContent = score;
+  document.getElementById("streak").textContent = streak + "🔥";
+  const mt = document.getElementById("misses-text");
+  mt.textContent = wrongGuesses + "/" + MAX_WRONG;
+  mt.style.color = (MAX_WRONG - wrongGuesses) <= 2 ? "#ef4444" : "#fff";
+}
+
+function renderHint() {
+  const area = document.getElementById("hint-area");
+  if (gameState !== "playing") { area.innerHTML = ""; return; }
+  if (hintStage === 0) {
+    area.innerHTML = `<button class="hint-btn" id="hint-btn">Show Hint</button>`;
+    document.getElementById("hint-btn").addEventListener("click", () => { hintStage = 1; renderHint(); });
+  } else {
+    let hints = [];
+    if (hintStage >= 1) hints.push(`<span style="color:#f97316">🏀 ${currentPlayerObj.team}</span>`);
+    if (hintStage >= 2) hints.push(`<span style="color:#fbbf24">🏃 ${currentPlayerObj.pos}</span>`);
+    if (hintStage >= 3) hints.push(`<span style="color:#fb923c">📅 Entered ${currentPlayerObj.year}</span>`);
+    let nextLabel = hintStage === 1 ? "Show Position" : hintStage === 2 ? "Show Year" : null;
+    area.innerHTML = `<div class="hint-text">${hints.join('<span style="opacity:0.3; margin:0 8px;">|</span>')}</div>`
+      + (nextLabel ? `<button class="hint-btn" id="hint-btn" style="margin-top:8px">${nextLabel}</button>` : '');
+    if (nextLabel) {
+      document.getElementById("hint-btn").addEventListener("click", () => { hintStage++; renderHint(); });
+    }
+  }
+}
+
+function renderResult() {
+  const area = document.getElementById("result-area");
+  const guessRow = document.getElementById("guess-row");
+  if (gameState === "playing") { area.innerHTML = ""; guessRow.classList.remove("hidden"); return; }
+  guessRow.classList.add("hidden");
+
+  const info = `<div style="font-size:12px; color:rgba(255,255,255,0.45); margin-top:4px;">${currentPlayerObj.pos} · ${currentPlayerObj.team} · ${currentPlayerObj.year}</div>`;
+
+  if (gameState === "won") {
+    area.innerHTML = `
+      <div class="result-card won">
+        <div class="result-title" style="color:#fbbf24">🏀 BUCKETS!</div>
+        <div class="result-sub">You got it in ${guessedLetters.size} letter picks!</div>
+        ${info}
+        <button class="next-btn" id="next-btn">Next Player →</button>
+      </div>`;
+  } else {
+    area.innerHTML = `
+      <div class="result-card lost">
+        <div class="result-title" style="color:#ef4444">BUZZER BEATER... ❌</div>
+        <div class="result-sub">The player was:</div>
+        <div class="result-answer">${currentPlayer.toUpperCase()}</div>
+        ${info}
+        <button class="next-btn" id="next-btn">Next Player →</button>
+      </div>`;
+  }
+  document.getElementById("next-btn").addEventListener("click", newRound);
+}
+
+function render() {
+  renderDots();
+  renderName();
+  renderKeyboard();
+  renderScores();
+  renderHint();
+  renderResult();
+}
+
+function handleLetter(letter) {
+  if (gameState !== "playing" || guessedLetters.has(letter)) return;
+  guessedLetters.add(letter);
+
+  if (!currentPlayer.toUpperCase().includes(letter)) {
+    wrongGuesses++;
+    document.getElementById("miss-dots").classList.add("shake");
+    setTimeout(() => document.getElementById("miss-dots").classList.remove("shake"), 500);
+    if (wrongGuesses >= MAX_WRONG) {
+      gameState = "lost"; streak = 0;
+    }
+  } else {
+    const unique = getUniqueLetters(currentPlayer);
+    if ([...unique].every(l => guessedLetters.has(l))) {
+      gameState = "won";
+      score += 50 + Math.max(0, (MAX_WRONG - wrongGuesses) * 10);
+      streak++;
+    }
+  }
+  render();
+}
+
+function handleNameGuess() {
+  const input = document.getElementById("guess-input");
+  const val = input.value.trim();
+  if (gameState !== "playing" || !val) return;
+
+  if (val.toLowerCase() === currentPlayer.toLowerCase()) {
+    gameState = "won";
+    const bonus = Math.max(0, (26 - guessedLetters.size) * 5) + Math.max(0, (MAX_WRONG - wrongGuesses) * 10);
+    score += 100 + bonus;
+    streak++;
+  } else {
+    wrongGuesses++;
+    input.classList.add("wrong");
+    document.getElementById("miss-dots").classList.add("shake");
+    setTimeout(() => {
+      input.classList.remove("wrong");
+      document.getElementById("miss-dots").classList.remove("shake");
+    }, 800);
+    if (wrongGuesses >= MAX_WRONG) { gameState = "lost"; streak = 0; }
+  }
+  input.value = "";
+  render();
+}
+
+function newRound() {
+  currentPlayerObj = pickPlayer();
+  currentPlayer = currentPlayerObj.name;
+  guessedLetters = new Set();
+  wrongGuesses = 0;
+  gameState = "playing";
+  hintStage = 0;
+  document.getElementById("guess-input").value = "";
+  render();
+}
+
+// Event listeners
+document.getElementById("guess-btn").addEventListener("click", handleNameGuess);
+document.getElementById("guess-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") handleNameGuess();
+});
+document.addEventListener("keydown", e => {
+  if (document.activeElement === document.getElementById("guess-input")) return;
+  const letter = e.key.toUpperCase();
+  if (ALPHABET.includes(letter)) handleLetter(letter);
+});
+
+// Init
+newRound();
+</script>
+
+</body>
+</html>
