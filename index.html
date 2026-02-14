@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Hoops Word — Guess the NBA Player</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -91,7 +91,7 @@
     flex: 1; padding: 10px 16px; border-radius: 12px;
     background: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.1);
-    color: #fff; font-size: 14px; font-family: 'Outfit', sans-serif;
+    color: #fff; font-size: 16px; font-family: 'Outfit', sans-serif;
     outline: none; transition: all 0.3s;
   }
   .guess-input::placeholder { color: rgba(255,255,255,0.25); }
@@ -106,19 +106,26 @@
   }
   .guess-btn:active { transform: scale(0.95); }
   .keyboard {
-    display: flex; flex-wrap: wrap; justify-content: center;
-    gap: 5px; max-width: 420px; margin-bottom: 24px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 6px; margin-bottom: 24px; width: 100%; max-width: 540px;
+  }
+  .kb-row {
+    display: flex; justify-content: center; gap: 5px;
   }
   .key {
-    width: 40px; height: 44px; border-radius: 8px;
+    width: 40px; height: 48px; border-radius: 8px;
     font-size: 16px; font-weight: 600;
     font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px;
-    cursor: pointer; transition: all 0.2s ease;
+    cursor: pointer; transition: all 0.15s ease;
     border: 1px solid rgba(255,255,255,0.1);
     background: rgba(255,255,255,0.04);
     color: rgba(255,255,255,0.8);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
   }
-  .key:hover:not(.used) { background: rgba(249,115,22,0.15); border-color: rgba(249,115,22,0.4); transform: scale(1.1); }
+  .key:hover:not(.used) { background: rgba(249,115,22,0.15); border-color: rgba(249,115,22,0.4); transform: scale(1.05); }
+  .key:active:not(.used) { transform: scale(0.93); }
   .key.correct {
     border-color: rgba(249,159,11,0.6);
     background: linear-gradient(135deg, rgba(249,159,11,0.25), rgba(249,115,22,0.15));
@@ -168,6 +175,49 @@
   }
   .shake { animation: shake 0.4s ease; }
   .hidden { display: none; }
+  /* Tablet / iPad */
+  @media (min-width: 600px) and (max-width: 1100px) {
+    .title { font-size: 56px; }
+    .keyboard { max-width: 620px; gap: 8px; }
+    .kb-row { gap: 7px; }
+    .key { width: 52px; height: 56px; font-size: 20px; border-radius: 10px; }
+    .name-row { padding: 20px 28px; min-height: 96px; }
+    .guess-row { max-width: 480px; }
+    .guess-input { padding: 14px 20px; font-size: 16px; border-radius: 14px; }
+    .guess-btn { padding: 14px 28px; font-size: 16px; border-radius: 14px; }
+    .score-bar { padding: 10px 32px; gap: 28px; }
+    .score-value { font-size: 28px; }
+    .miss-dot { width: 16px; height: 16px; }
+    .hint-btn { padding: 10px 24px; font-size: 14px; }
+    .hint-text { font-size: 15px; padding: 10px 20px; }
+    .result-card { padding: 28px 36px; }
+    .result-title { font-size: 36px; }
+    .next-btn { padding: 14px 40px; font-size: 18px; }
+  }
+
+/* Large iPad / iPad Pro landscape */
+@media (min-width: 1024px) {
+.keyboard { max-width: 680px; }
+.key { width: 56px; height: 60px; font-size: 22px; }
+}
+
+/* Small mobile */
+@media (max-width: 420px) {
+body { padding: 12px 8px; }
+.title { font-size: 36px; letter-spacing: 2px; }
+.subtitle { font-size: 10px; letter-spacing: 4px; }
+.score-bar { gap: 14px; padding: 6px 16px; }
+.score-value { font-size: 20px; }
+.score-label { font-size: 9px; }
+.keyboard { gap: 4px; }
+.kb-row { gap: 3px; }
+.key { width: 30px; height: 40px; font-size: 13px; border-radius: 6px; }
+.name-row { padding: 12px 10px; min-height: 64px; }
+.guess-row { max-width: 100%; }
+.guess-input { font-size: 16px; }
+.miss-dot { width: 12px; height: 12px; }
+}
+
 </style>
 </head>
 <body>
@@ -464,9 +514,10 @@ function renderName() {
   row.innerHTML = "";
   const chars = currentPlayer.split("");
   const charCount = chars.length;
-  const maxWidth = 460;
+  const screenW = window.innerWidth;
+  const maxWidth = screenW >= 600 ? 580 : screenW >= 420 ? 460 : screenW - 40;
   const marginPerChar = 4;
-  const baseSize = 36;
+  const baseSize = screenW >= 600 ? 42 : 36;
   const tileSize = Math.min(baseSize, Math.floor((maxWidth - charCount * marginPerChar) / charCount));
   const fontSize = Math.round(tileSize * 0.75);
   const tileHeight = Math.round(tileSize * 1.4);
@@ -500,18 +551,28 @@ function renderName() {
 function renderKeyboard() {
   const kb = document.getElementById("keyboard");
   kb.innerHTML = "";
-  ALPHABET.forEach(letter => {
-    const btn = document.createElement("button");
-    btn.textContent = letter;
-    const isGuessed = guessedLetters.has(letter);
-    const isInName = currentPlayer.toUpperCase().includes(letter);
-    let cls = "key";
-    if (isGuessed && isInName) cls += " correct used";
-    else if (isGuessed && !isInName) cls += " wrong used";
-    btn.className = cls;
-    btn.disabled = isGuessed || gameState !== "playing";
-    btn.addEventListener("click", () => handleLetter(letter));
-    kb.appendChild(btn);
+  const rows = [
+    "QWERTYUIOP".split(""),
+    "ASDFGHJKL".split(""),
+    "ZXCVBNM".split(""),
+  ];
+  rows.forEach(row => {
+    const rowDiv = document.createElement("div");
+    rowDiv.className = "kb-row";
+    row.forEach(letter => {
+      const btn = document.createElement("button");
+      btn.textContent = letter;
+      const isGuessed = guessedLetters.has(letter);
+      const isInName = currentPlayer.toUpperCase().includes(letter);
+      let cls = "key";
+      if (isGuessed && isInName) cls += " correct used";
+      else if (isGuessed && !isInName) cls += " wrong used";
+      btn.className = cls;
+      btn.disabled = isGuessed || gameState !== "playing";
+      btn.addEventListener("click", () => handleLetter(letter));
+      rowDiv.appendChild(btn);
+    });
+    kb.appendChild(rowDiv);
   });
 }
 
